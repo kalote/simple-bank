@@ -1,13 +1,11 @@
-# Sample Hardhat Project
+# Simple Bank
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+This is an implementation of a simple bank contract: deposit / withdraw / get balance. The bank allows multiple currencies (default: USD, EUR, GBP), and the bank owner can add more if needed.
 
-Try running some of the following tasks:
+## Install
 
-```shell
-npx hardhat help
+```
+npm i
+npx hardhat compile
 npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.ts
 ```
