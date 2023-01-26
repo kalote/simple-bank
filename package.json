@@ -19,6 +19,8 @@
   "homepage": "https://github.com/kalote/simple-bank#readme",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.1",
-    "hardhat": "^2.12.6"
+    "@nomiclabs/hardhat-ethers": "^2.2.2",
+    "hardhat": "^2.12.6",
+    "prettier": "^2.8.3"
   }
 }

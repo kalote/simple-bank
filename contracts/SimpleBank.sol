@@ -9,16 +9,16 @@ contract SimpleBank {
   address public owner;
 
   // available currencies
-  mapping(string => bool) checkCurrencies;
+  mapping(string => bool) public checkCurrencies;
 
   // list of currencies
-  string[] currencies = ["EUR", "USD", "GBP"];
+  string[] public currencies = ["EUR", "USD", "GBP"];
 
   // registered clients
-  mapping(address => bool) registered;
+  mapping(address => bool) public registered;
 
   // balances for each currencies
-  mapping(address => mapping(string => uint)) balances;
+  mapping(address => mapping(string => uint)) internal balances;
 
   constructor() {
     owner = msg.sender;
@@ -37,17 +37,17 @@ contract SimpleBank {
   */
 
   modifier onlyOwner() {
-    require(msg.sender == owner);
+    require(msg.sender == owner, "Only owner can use this function");
     _;
   }
 
   modifier onlyRegistered() {
-    require(registered[msg.sender]);
+    require(registered[msg.sender], "Only registered clients can use this function");
     _;
   }
 
   modifier onlyExistingCurrencies(string memory currency) {
-    require(checkCurrencies[currency]);
+    require(checkCurrencies[currency], "Currency not available");
     _;
   }
 
