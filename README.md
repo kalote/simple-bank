@@ -9,3 +9,10 @@ npm i
 npx hardhat compile
 npx hardhat test
 ```
+
+## Deploy
+
+```
+touch .env # check the .env.example to see what values are expected
+npx hardhat run scripts/deploy.ts --network goerli
+```
