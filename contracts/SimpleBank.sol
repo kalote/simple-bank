@@ -2,9 +2,10 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-interface IMyToken is IERC20 {
+interface IMyToken is IERC20, IERC20Metadata {
   function mint(address to, uint256 amount) external;
 }
 
@@ -18,7 +19,7 @@ contract SimpleBank {
   // Currency struct
   struct Currency {
     string code;
-    IMyToken location;
+    IMyToken fiatToken;
     AggregatorV3Interface priceFeed;
   }
 
@@ -38,17 +39,17 @@ contract SimpleBank {
     // initialize default currencies
     currencies.push(Currency({
       code: "EUR",
-      location: _eurContract,
+      fiatToken: _eurContract,
       priceFeed: AggregatorV3Interface(_eurPrice)
     }));
     currencies.push(Currency({
       code: "USD",
-      location: _usdContract,
+      fiatToken: _usdContract,
       priceFeed: AggregatorV3Interface(_usdPrice)
     }));
     currencies.push(Currency({
       code: "GBP",
-      location: _gbpContract,
+      fiatToken: _gbpContract,
       priceFeed: AggregatorV3Interface(_gbpPrice)
     }));
     // initialize checkCurrencies mapping
@@ -126,8 +127,8 @@ contract SimpleBank {
     public returns (bool) {
       currencies.push(Currency({
         code: _code,
-        location: _newCurrency,
-        priceFeed: _priceFeed
+        fiatToken: _newCurrency,
+        priceFeed: AggregatorV3Interface(_priceFeed)
       }));
       checkCurrencies[_code] = true;
       return true;
@@ -139,14 +140,41 @@ contract SimpleBank {
     onlyExistingCurrencies(_currency)
     public payable 
     returns (uint amountToBeGiven) {
-      uint256 paymentReceived = msg.value;
-      for (uint256 i = 0; i < currencies.length; i++) {
+      require(msg.value > 0, "You need to send ETH");
+      int paymentReceived = int(msg.value);
+      // loop through currencies to find the good one
+      for (uint i = 0; i < currencies.length; i++) {
+        // when we found the currency the sender wants to buy
         if (keccak256(bytes(currencies[i].code)) == keccak256(bytes(_currency))) {
+          // we get the latest price
           (,int price,,,) = currencies[i].priceFeed.latestRoundData();
-          amountToBeGiven = paymentReceived * uint(price) / 1 ether;
-          currencies[i].location.mint(msg.sender, amountToBeGiven);
+          // we get the # of decimals for this currency
+          uint8 priceDecimals = currencies[i].priceFeed.decimals();
+          // we scale the price (== same amount of decimals)
+          price = scalePrice(price, priceDecimals, currencies[i].fiatToken.decimals());
+          // we get the value of 1 of the currency with the same amount of decimals
+          int decimals = int(10 ** uint256(currencies[i].fiatToken.decimals()));
+
+          // we calculate the conversion between token / eth
+          // if 0.1 eth given, and the user wants USD, then ~156.78 MyUSD will be given
+          amountToBeGiven = uint256(paymentReceived * price / decimals);
+          // we mint the appropriate amount of token to the sender
+          currencies[i].fiatToken.mint(msg.sender, amountToBeGiven);
+          // we log what happened
           emit LogBuyToken(msg.sender, _currency, msg.value, amountToBeGiven);
         }
       }
+  }
+
+  // internal scaling decimals function
+  function scalePrice(int256 _price, uint8 _priceDecimals, uint8 _decimals) 
+    internal pure 
+    returns (int256) {
+      if (_priceDecimals < _decimals) {
+        return _price * int256(10 ** uint256(_decimals - _priceDecimals));
+      } else if (_priceDecimals > _decimals) {
+        return _price / int256(10 ** uint256(_priceDecimals - _decimals));
+      }
+      return _price;
   }
 }
